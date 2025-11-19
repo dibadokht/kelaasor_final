@@ -3,9 +3,10 @@ from rest_framework.permissions import AllowAny, IsAdminUser , IsAuthenticated
 from rest_framework import filters
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Course, Enrollment, Section, Lesson , Order, OrderItem
+from .models import Course, Enrollment, Section, Lesson , Order, OrderItem , Cart , CartItem
 from .serializers import (CourseSerializer, EnrollmentSerializer, SectionSerializer,
-    LessonPublicSerializer, LessonDetailSerializer , OrderSerializer, OrderCreateSerializer)
+    LessonPublicSerializer, LessonDetailSerializer , OrderSerializer, OrderCreateSerializer,
+    CartItemSerializer , AddToCartSerializer)
 from .filters import CourseFilter
 from .permissions import IsEnrolledOrPreview
 from django.utils import timezone
@@ -180,3 +181,33 @@ class OrderPayView(CreateAPIView):
 
         return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
 
+###########################################
+
+class CartListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        # Each user has one cart; create it if it doesn't exist
+        cart, _ = Cart.objects.get_or_create(user=self.request.user)
+        return cart.items.select_related("course")
+    
+class AddToCartView(CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AddToCartSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()  # returns CartItem
+
+        output_data = CartItemSerializer(item).data
+        return Response(output_data, status=status.HTTP_201_CREATED)
+    
+class RemoveFromCartView(DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        # Only allow deleting items from the current user's cart
+        return CartItem.objects.filter(cart__user=self.request.user)

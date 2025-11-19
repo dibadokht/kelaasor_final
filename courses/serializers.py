@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Enrollment , Section, Lesson, Order, OrderItem
+from .models import Course, Enrollment , Section, Lesson, Order, OrderItem , Cart , CartItem
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,3 +117,49 @@ class OrderCreateSerializer(serializers.Serializer):
         items = [OrderItem(order=order, course=c, price_snapshot=c.price) for c in courses]
         OrderItem.objects.bulk_create(items)
         return order
+
+class AddToCartSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        cid = attrs["course_id"]
+
+        # Check if course exists and is active
+        try:
+            course = Course.objects.get(id=cid, is_active=True)
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("The requested course does not exist or is not active.")
+
+        # Check if user already enrolled
+        if Enrollment.objects.filter(user=user, course=course, status="active").exists():
+            raise serializers.ValidationError("You are already enrolled in this course.")
+
+        attrs["course"] = course
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        course = validated_data["course"]
+
+        # Get or create cart for user
+        cart, _ = Cart.objects.get_or_create(user=user)
+
+        # Prevent duplicate items in cart
+        item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            course=course
+        )
+
+        if not created:
+            raise serializers.ValidationError("This course is already in your cart.")
+
+        return item
+
+class CartItemSerializer(serializers.ModelSerializer):
+    course_title = serializers.ReadOnlyField(source="course.title")
+    course_price = serializers.ReadOnlyField(source="course.price")
+
+    class Meta:
+        model = CartItem
+        fields = ["id", "course", "course_title", "course_price", "added_at"]

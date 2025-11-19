@@ -101,3 +101,30 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"#{self.order_id} :: {self.course.title} ({self.price_snapshot})"
+    
+############################################
+
+class Cart(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cart"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart of {self.user.mobile}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("cart", "course") 
+
+    def __str__(self):
+        return f"{self.cart.user.mobile} -> {self.course.title}"
+

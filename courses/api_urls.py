@@ -5,7 +5,8 @@ from .views import (
      MyEnrollmentListView, EnrollmentCreateView,
      CourseSectionsView, CourseLessonsListView, LessonDetailView,
      MyOrdersListView, OrderDetailView, OrderCreateView, OrderPayView,
-)
+     CartListView , AddToCartView , RemoveFromCartView,
+     )
 
 urlpatterns = [
     # courses
@@ -29,4 +30,11 @@ urlpatterns = [
     path("orders/create/", OrderCreateView.as_view(), name="order-create"),
     path("orders/<int:pk>/", OrderDetailView.as_view(), name="order-detail"),
     path("orders/<int:id>/pay/", OrderPayView.as_view(), name="order-pay"),  # fake payment
+    
+    #cart
+    path("cart/", CartListView.as_view(), name="cart-list"),
+    path("cart/add/", AddToCartView.as_view(), name="cart-add"),
+    path("cart/remove/<int:pk>/", RemoveFromCartView.as_view(), name="cart-remove"),
+    
+    
 ]
