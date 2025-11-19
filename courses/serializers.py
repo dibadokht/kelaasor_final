@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Course, Enrollment , Section, Lesson, Order, OrderItem , Cart , CartItem
+from django.utils import timezone
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -131,9 +132,17 @@ class AddToCartSerializer(serializers.Serializer):
         except Course.DoesNotExist:
             raise serializers.ValidationError("The requested course does not exist or is not active.")
 
-        # Check if user already enrolled
+        #  Rule 1: user already enrolled
         if Enrollment.objects.filter(user=user, course=course, status="active").exists():
             raise serializers.ValidationError("You are already enrolled in this course.")
+
+        #  Rule 2: for ONLINE courses, check enrollment deadline
+        today = timezone.now().date()
+        if course.course_type == "online" and course.start_date:
+            if today > course.start_date:
+                raise serializers.ValidationError(
+                    "Enrollment for this online course is closed (start date has passed)."
+                )
 
         attrs["course"] = course
         return attrs
