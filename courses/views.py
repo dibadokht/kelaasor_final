@@ -134,10 +134,21 @@ class OrderCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderCreateSerializer
     def create(self, request, *args, **kwargs):
+        user = request.user
+
+        if not user.is_profile_complete():
+            return Response(
+                {
+                    "detail": "please enter your name and firstname"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
         order = ser.save()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
 
 class OrderPayView(CreateAPIView):
    

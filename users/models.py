@@ -54,6 +54,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.mobile
     
+    def is_profile_complete(self) -> bool:
+        required_fields = [
+        getattr(self, "first_name", None),
+        getattr(self, "last_name", None),
+        ]
+        
+        return all(bool(v) for v in required_fields)
+
+    
 
 def generate_otp_code(length=6):
     return "".join(str(random.randint(0, 9)) for _ in range(length))
